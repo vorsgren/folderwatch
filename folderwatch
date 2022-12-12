@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# A script which monitors a directory, and removes any new files created or moved into the directory (existing files are kept and can be edited)
+# Requires full path to a directory as an argument - without a directory it will exit. e.g. ./folderwatch /path/to/folder 
+# NOTICE: this script will only work the GNU version of xargs - the -d (delimiter) flag is not a Posix standard
+
+Diry=$1 # Gets directory from provided argument
+
+# This line uses inotifywait to monitor provided directory for any added or moved files. 
+# On detection, the output is cut to just the filename with cut, and passed to xargs rm (stdbuf ensures that the output is sent to xargs immediately).
+# Xargs rm removes the file
+
+inotifywait -qme create,moved_to $Diry | stdbuf -oL cut -d" " -f3- | xargs -d '\n' -I{} rm -rf $Diry/{} # Argument by argument explanation of line below
+#quietly monitor|for files      |this  |buffer     |cut first two  |takes  |set   |Assn |remove        |
+#       	|being created  |dir   |output by  |words from     |piped  |delim |input|dir/filename  |
+# 		|& moved into	|      |line -     |output - remove|stdout |to new|to {}|     
+# 		  		       |this sends |excess from    |inserts|line  |  
+# 				       |output to  |inotifywait    |as     |
+# 				       |xargs      |output and just|args   |        
+# 				       |immediately|leaves filename|to rm  |      
